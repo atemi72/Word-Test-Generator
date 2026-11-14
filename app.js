@@ -641,14 +641,21 @@ let socialV2Warnings=[];
   updateModeCopy();
 })();
 
-function pickViaInput(){
-  return new Promise((resolve, reject)=>{
+function pickViaInput() {
+  return new Promise(resolve => {
     const inp = document.createElement('input');
-    inp.type = 'file'; inp.accept = '.csv,.tsv,.txt';
-    inp.onchange = ()=> {
-      const f = inp.files && inp.files[0];
-      f ? resolve(f) : reject(new Error('ファイルが選択されませんでした'));
-    };
+
+    inp.type = 'file';
+    inp.accept = '.csv,.tsv,.txt';
+
+    inp.addEventListener('change', () => {
+      resolve(inp.files?.[0] ?? null);
+    }, { once: true });
+
+    inp.addEventListener('cancel', () => {
+      resolve(null);
+    }, { once: true });
+
     inp.click();
   });
 }
@@ -666,14 +673,17 @@ $('#btnOpenFile').addEventListener('click', async ()=>{
       try{
         [fh] = await showOpenFilePicker(opts);
       }catch(e){
-        // startIn を拒否/非対応の場合はオプションなしで再挑戦
-        [fh] = await showOpenFilePicker(opts);
+        if (e.name === 'AbortError') {
+          return;
+        }
+        throw e;
       }
       file = await fh.getFile();
       displayName = fh.name || file.name || 'session';
     } else {
       // 非対応ブラウザ: <input type="file">
       file = await pickViaInput();
+      if (!file) return;
       displayName = file.name || 'session';
     }
 
