@@ -174,20 +174,51 @@ function parseDelimited(text){
   return { rows, delim };
 }
 
-function autoHeaders(rows){
-  if(!rows.length) return {headers:[], data:[]}
-  const first = rows[0].map(s=>s.trim());
-  const typical = ["word","単語","term","meaning","意味","translation"]; 
-  const looksHeader = first.some(h=>typical.includes(h.toLowerCase())) || new Set(first).size===first.length;
-  let headers, data;
-  if(looksHeader){ headers=first; data=rows.slice(1)} else { headers=first.map((_,i)=>"col"+(i+1)); data=rows.slice(0)}
-  return {headers, data};
+function autoHeaders(rows) {
+  if (!rows.length) {
+    return { headers: [], data: [], firstDataLine: 1 };
+  }
+
+  const first = rows[0].map(s =>
+    s.replace(/^\uFEFF/, '').trim()
+  );
+
+  const knownHeaders = new Set([
+    'word', 'term', 'english', '英語', '単語',
+    'meaning', 'translation', 'japanese',
+    '日本語', '意味',
+    'question', 'answer', '問題文', '解答'
+  ]);
+
+  const hasHeader =
+    first.length >= 2 &&
+    first.slice(0, 2).every(h =>
+      knownHeaders.has(h.toLowerCase())
+    );
+
+  if (hasHeader) {
+    return {
+      headers: first,
+      data: rows.slice(1),
+      firstDataLine: 2
+    };
+  }
+
+  return {
+    headers: first.map((_, i) => `col${i + 1}`),
+    data: rows,
+    firstDataLine: 1
+  };
 }
 
-function toObjects(headers, rows){
-  return rows.map((r, idx)=>{
-    const o = { __row: idx+1 }; 
-    headers.forEach((h,i)=> o[h] = (r[i]||"").trim());
+function toObjects(headers, rows, firstDataLine = 1) {
+  return rows.map((r, idx) => {
+    const o = { __row: idx + firstDataLine };
+
+    headers.forEach((h, i) => {
+      o[h] = (r[i] || '').trim();
+    });
+
     return o;
   });
 }
@@ -662,7 +693,7 @@ $('#btnOpenFile').addEventListener('click', async ()=>{
       socialV2Warnings = [];
       const ah = autoHeaders(rows);
       currentHeaders = ah.headers;
-      currentData = toObjects(ah.headers, ah.data);
+      currentData = toObjects(ah.headers, ah.data, ah.firstDataLine);
     }
 
     const baseName = displayName.replace(/\.[^.]+$/, '');
