@@ -1,0 +1,22 @@
+# 個人用・教材データ
+*.csv
+*.tsv
+*.txt
+
+# 公開用の架空サンプルデータのみ許可
+!examples/*.csv
+!examples/*.tsv
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Local environment
+.env
+.env.*
+node_modules/
+coverage/
+*.log
