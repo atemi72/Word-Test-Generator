@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>小テストジェネレータ</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="wrap">
+    <div class="layout-main">
+      <div class="card">
+          <h1>小テストジェネレータ 
+            <span class="pill">社内利用ONLY</span>
+            <span id="appVersion" class="pill" style="margin-left:8px"></span>
+            <button id="btnShortcuts" type="button" class="pill shortcut-pill" style="margin-left:8px">
+              ショートカットキー一覧
+            </button>
+          </h1>
+          <p class="muted">このアプリケーションは<strong>完全ローカル</strong>で動作します。CSVをその都度選択して使用するシンプルな方式です．</p>
+          <!-- STEP 1: 単語帳の選択/管理 -->
+          <div class="section">
+            <h2>1) 単語帳を選ぶ</h2>
+            <div class="row" style="gap:16px">
+              <button class="btn btn-accent" id="btnOpenFile">単語帳を選ぶ</button>
+              <div id="selectedBook" class="book-badge" aria-live="polite"></div>
+            </div>
+          </div>
+
+          <!-- STEP 2: 範囲・出題数・形式 -->
+          <div class="section" id="rangeWrap" style="display:none">
+            <h2>2) 範囲・出題数</h2>
+            <div class="grid grid-3 step2-grid">
+              <div id="standardRangeControls">
+                <label id="rangeLabel">単語番号を指定</label>
+                <div class="row">
+                  <input type="number" id="idxFrom" placeholder="開始" min="1" style="max-width:120px">
+                  <span class="muted">〜</span>
+                  <input type="number" id="idxTo" placeholder="終了" min="1" style="max-width:120px">
+                </div>
+                <div class="sublabel"><span id="rowCountLabel">総単語数</span>：<span id="rowCount">-</span></div>
+                <div id="rangeError" class="error-msg"></div>
+              </div>
+              <div>
+                <label>出題数</label>
+                <input type="number" id="numQuestions" min="1" placeholder="例: 20" style="max-width:140px">
+                <div style="margin-top:8px">
+                  <label class="toggle">
+                    <input type="checkbox" id="chkRandom" checked>
+                    <span class="toggle-track" aria-hidden="true"></span>
+                    <span class="toggle-label">並びをランダムにする</span>
+                    <span
+                      class="info-chip"
+                      tabindex="0"
+                      aria-label="問題の並び順をランダムにします"
+                      data-tip="問題の順番をランダムに並び替えます。オフにすると指定範囲の先頭から順に出題されます。"
+                    >?</span>
+                  </label>
+                </div>
+                <div id="numError" class="error-msg"></div>
+              </div>
+
+              <div class="emphasize emphasize-blue">
+                <span class="label-strong" id="modeLabel">和訳or英訳</span>
+                <div class="row" style="margin-top:0">
+                  <select id="mode">
+                    <option value="en2ja">英 → 日</option>
+                    <option value="ja2en">日 → 英</option>
+                    <option value="social">社会モード(調整中)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="social-v2-panel hidden" id="socialV2Range">
+              <div class="social-v2-grid social-v2-grid-main">
+                <div>
+                  <label>章選択</label>
+                  <div class="social-v2-actions">
+                    <button type="button" class="btn social-v2-mini-btn" id="socialV2SelectAllChapters">すべて選択</button>
+                    <button type="button" class="btn social-v2-mini-btn" id="socialV2ClearChapters">すべて解除</button>
+                  </div>
+                  <div class="social-v2-sections social-v2-chapters" id="socialV2ChapterList"></div>
+                </div>
+                <div>
+                  <button type="button" class="btn social-v2-detail-toggle" id="socialV2DetailToggle" aria-expanded="false">詳細範囲指定を表示</button>
+                  <div class="sublabel" id="socialV2SelectedCount">選択中: 0問</div>
+                </div>
+              </div>
+              <div class="social-v2-detail hidden" id="socialV2DetailPanel">
+                <div class="social-v2-grid social-v2-detail-grid">
+                  <div>
+                    <label>節選択</label>
+                    <div class="social-v2-sections" id="socialV2SectionList"></div>
+                  </div>
+                  <div>
+                    <label>項選択</label>
+                    <div class="social-v2-sections" id="socialV2ItemList"></div>
+                  </div>
+                </div>
+              </div>
+              <div id="socialV2Error" class="error-msg"></div>
+            </div>
+            <div class="hr"></div>
+          </div>
+          
+          <!-- STEP 3: オプション -->
+          <details class="section" id="optionWrap" style="display:none">
+            <summary class="opt-summary">
+              <span>3) オプション</span>
+              <span class="muted" style="margin-left:8px"></span>
+            </summary>
+            <div class="section emphasize emphasize-green" style="margin-top:8px">
+              <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:6px">
+                <label style="display:flex; align-items:center; gap:6px; margin-bottom:0;">
+                  <span>まとめて作成</span>
+                  <span
+                    class="info-chip"
+                    tabindex="0"
+                    aria-label="指定範囲をブロックに分けて複数枚のテストを一度に作成します"
+                    data-tip="指定した範囲をブロックサイズごとに分割し、各ブロックから n 問ずつ出題するテストをまとめて作成します。"
+                  >?</span>
+                </label>
+              </div>
+
+              <div class="row" style="gap:12px">
+                <label class="toggle">
+                  <input type="checkbox" id="bulkMode">
+                  <span class="toggle-track" aria-hidden="true"></span>
+                  <span class="toggle-label">有効にする</span>
+                </label>
+                <span class="muted">ブロックサイズ（例：100）</span>
+                <input type="number" id="bulkChunk" value="100" min="1" style="max-width:120px">
+              </div>
+
+              <div class="sublabel">例：範囲 1~1000, ブロックサイズ 100 ⇛ 10枚出力 (1~100,101~200,...,901~1000)</div>
+            </div>
+
+            <!-- <div class="row right" style="margin-top:16px; justify-content:flex-end">
+              <button class="btn btn-primary btn-hero no-print" id="btnGenerate">
+                テストを生成
+              </button>
+            </div> -->
+
+            <div class="hr"></div>
+          </details>
+
+          <div class="footer">
+            <p>CSVは選択した時にのみ読み込みまれ，外部送信されません．個人学習目的で利用し，第三者配布やクラウド共有は<strong>必ず</strong>避けてください．</p>
+            <p class="muted" id="csvFormatHelp">CSVの並びは<code>英語，日本語</code> の順にしてください．</p>
+            <pre class="csv-example hidden" id="csvExample">問題文，解答
+1871年に明治政府が藩を廃止して府県を設置し、中央集権化を進めた改革を何というか。廃藩置県</pre>
+          </div>
+        </div>
+      <div class="card card-preview no-print">
+        <h2>プレビュー</h2>
+        <p class="muted" id="previewStatus">
+          CSV・範囲・出題数を設定するとここに印刷レイアウトが表示されます。
+        </p>
+        <div class="preview-frame-wrap">
+          <iframe id="previewFrame" class="preview-frame" title="印刷プレビュー"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script src="print.js"></script>
+
+  <dialog id="changelogDialog">
+    <form method="dialog" class="dlg">
+      <div class="dlg-header">
+        <span id="chgTitle">変更履歴</span>
+        <button type="submit" class="dlg-close" aria-label="閉じる">×</button>
+      </div>
+      <div class="dlg-body" id="chgBody"></div>
+      <div class="dlg-footer">
+        <button class="btn" value="close">閉じる</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="shortcutDialog">
+    <form method="dialog" class="dlg">
+      <div class="dlg-header">
+        <span>ショートカット一覧</span>
+        <button type="submit" class="dlg-close" aria-label="閉じる">×</button>
+      </div>
+      <div class="dlg-body shortcut-body">
+        <div class="shortcut-list">
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd class="kbd">Ctrl</kbd>
+              <span class="shortcut-plus">+</span>
+              <kbd class="kbd">O</kbd>
+            </div>
+            <div class="shortcut-text">
+              <span class="shortcut-title">CSVファイルを選ぶ</span>
+              <span class="shortcut-note">単語帳の読み込みを開始します</span>
+            </div>
+          </div>
+
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd class="kbd">Ctrl</kbd>
+              <span class="shortcut-plus">+</span>
+              <kbd class="kbd">Enter</kbd>
+            </div>
+            <div class="shortcut-text">
+              <span class="shortcut-title">テストを生成</span>
+              <span class="shortcut-note">別タブで印刷ページを開きます</span>
+            </div>
+          </div>
+
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd class="kbd">?</kbd>
+            </div>
+            <div class="shortcut-text">
+              <span class="shortcut-title">この一覧を表示</span>
+              <span class="shortcut-note">ショートカットの確認用です</span>
+            </div>
+          </div>
+
+          <div class="shortcut-item">
+            <div class="shortcut-keys">
+              <kbd class="kbd">Esc</kbd>
+            </div>
+            <div class="shortcut-text">
+              <span class="shortcut-title">閉じる</span>
+              <span class="shortcut-note">開いているショートカット画面を閉じます</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="dlg-footer">
+        <button class="btn" value="close">閉じる</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
